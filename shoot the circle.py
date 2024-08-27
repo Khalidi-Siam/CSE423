@@ -24,7 +24,6 @@ catcher_y = catcher_radius
 
 enemy_radius = 20
 enemy_position = []
-# enemy_x, enemy_y = set_enemy_pos()
 enemy_speed = []
 enemy_color = []
 
@@ -40,9 +39,7 @@ life = 3
 life_x = width - 65
 life_y = height - button_section_height + 18
 
-shooter_active = False
-shooter_x = 0
-shooter_y = 0
+shooters = []
 shooter_speed = 3
 shooter_radius = 5
 
@@ -192,7 +189,7 @@ def draw_enemy(x, y):
 
 def draw_shooter(x, y):
     global shooter_active, game_over
-    if(game_over or shooter_active == False):
+    if(game_over):
         glColor3f(0, 0, 0)
     else:
         glColor3f(1, 0, 0)
@@ -283,7 +280,7 @@ def calc_distance(catcher_x, catcher_y, enemy_x, enemy_y):
 def update_ground():
     global enemy_position, enemy_speed, enemy_color, catcher_x, catcher_y, last_spawn_time
     global score, pause, game_over, life
-    global shooter_active, shooter_x, shooter_y, shooter_speed
+    global shooters, shooter_speed
 
     if(game_over == False and pause == False):
         current_time = glutGet(GLUT_ELAPSED_TIME)
@@ -293,18 +290,20 @@ def update_ground():
             enemy_color.append(set_enemy_color())
             last_spawn_time = current_time
 
-        if(shooter_active):
+        for i in range(len(shooters) - 1, -1, -1):
+            shooter_x, shooter_y = shooters[i]
             shooter_y += shooter_speed 
+            shooters[i] = (shooter_x, shooter_y)  
             if(shooter_y > height - button_section_height):
-                shooter_active = False
-                shooter_x, shooter_y = 0, 0
+                shooters.remove(shooters[i])
 
         for i in range(len(enemy_position) - 1, -1, -1):
             enemy_x, enemy_y = enemy_position[i]
             enemy_y -= enemy_speed[i]
             enemy_position[i] = (enemy_x, enemy_y)
 
-            if(shooter_active):
+            for j in range(len(shooters) - 1, -1, -1):
+                shooter_x, shooter_y = shooters[j]
                 distance = calc_distance(shooter_x, shooter_y, enemy_x, enemy_y)
                 if(distance <= shooter_radius + enemy_radius):
                     score += 1
@@ -313,22 +312,24 @@ def update_ground():
                     #     enemy_speed[i] = 1.0
                     # else:
                     #     enemy_speed[i] += 0.1
+                    shooters.remove(shooters[j])
                     enemy_position.remove(enemy_position[i])
                     enemy_speed.remove(enemy_speed[i])
                     enemy_color.remove(enemy_color[i])
 
 
-                    shooter_active = False
+                    # shooter_active = False
                     # enemy_x, enemy_y = set_enemy_pos()
                     # enemy_color = set_enemy_color()
-                    continue
+                    # continue
+                    break
 
             distance = calc_distance(catcher_x, catcher_y, enemy_x, enemy_y)
             if(distance <= catcher_radius + enemy_radius):
                 game_over = True
                 life = 0
                 # enemy_x, enemy_y = set_enemy_pos()
-                print(f'Game Over! Score: {score}')
+                # print(f'Game Over! Score: {score}')
                 reset()
                 
             elif(enemy_y < 0):
@@ -336,7 +337,7 @@ def update_ground():
                 if(life <= 0):
                     game_over = True
                     # enemy_x, enemy_y = set_enemy_pos()
-                    print(f'Game Over! Score: {score}')
+                    # print(f'Game Over! Score: {score}')
                     reset()
 
                 else:
@@ -344,27 +345,30 @@ def update_ground():
                     enemy_speed.remove(enemy_speed[i])
                     enemy_color.remove(enemy_color[i])
             
-def reset():
-    global enemy_position, enemy_color, enemy_speed, last_spawn_time, spawn_interval
-    global score, game_over, pause, life, shooter_active, shooter_speed, shooter_x, shooter_y
-    global catcher_x, catcher_y, catcher_radius, width
+def reset(): #when game over just reset the value
+    global enemy_position, enemy_color, enemy_speed, shooters
 
     enemy_position = []
     enemy_speed = []
     enemy_color = []
-    if(game_over == False):
-        last_spawn_time = glutGet(GLUT_ELAPSED_TIME)
-        score = 0
-        life = 3
-        game_over = False
-        pause = False
-        shooter_active = False
-        shooter_x = 0
-        shooter_y = 0 
+    shooters = []
 
-        catcher_x = (width // 2) - (catcher_radius // 2) #catcher radius 20
-        catcher_y = catcher_radius  
-        spawn_interval = 0
+
+def restart(): #when click the restart button then everything back to initial stage
+    global last_spawn_time, spawn_interval
+    global score, game_over, pause, life
+    global catcher_x, catcher_y, catcher_radius, width
+
+    reset()
+    last_spawn_time = glutGet(GLUT_ELAPSED_TIME)
+    score = 0
+    life = 3
+    game_over = False
+    pause = False
+
+    catcher_x = (width // 2) - (catcher_radius // 2) #catcher radius 20
+    catcher_y = catcher_radius  
+    spawn_interval = 0
 
 
 def mouseListener(button, state, x, y):
@@ -375,8 +379,8 @@ def mouseListener(button, state, x, y):
         y = height - y
         if(y >= height - 40 and y <= height - 15):
             if(x >= 20 and x <= 50):
-                print("Starting over")
-                reset()
+                # print("Starting over")
+                restart()
 
             elif(x >= width / 2 - 5 and x <= width / 2 + 15):
                 if(pause == False):
@@ -385,7 +389,7 @@ def mouseListener(button, state, x, y):
                     pause = False
 
             elif(x >= width - 60 and x <= width - 30):
-                print("Good bye Your score :", score)
+                # print("Good bye Your score :", score)
                 glutLeaveMainLoop()
 
 
@@ -402,9 +406,9 @@ def specialKeyListener(key, x, y):
             if(catcher_x > width - catcher_radius):
                 catcher_x = width - catcher_radius
 
-
+space_pressed = False
 def keyboardListener(key, x, y):
-    global catcher_x, catcher_y, pause, game_over, shooter_x, shooter_y, shooter_active
+    global catcher_x, catcher_y, pause, game_over, shooters, space_pressed
 
     if(game_over == False and pause == False):
         if(key == b'a'):
@@ -416,10 +420,17 @@ def keyboardListener(key, x, y):
             if(catcher_x > width - catcher_radius):
                 catcher_x = width - catcher_radius
 
-        elif(key == b" " and shooter_active == False):
+        elif(key == b" " and space_pressed == False):
             shooter_x = catcher_x
             shooter_y = catcher_y + catcher_radius
-            shooter_active = True
+            shooters.append((shooter_x, shooter_y))
+            space_pressed = True
+
+def spaceReleasedListener(key, x, y):
+    global space_pressed
+
+    if(key == b" "):
+        space_pressed = False
 
 
 
@@ -433,7 +444,7 @@ def iterate():
 
 
 def showScreen():
-    global spawn_interval, shooter_x, shooter_y, catcher_x, catcher_y
+    global spawn_interval, shooters, catcher_x, catcher_y
     global enemy_position, enemy_color, enemy_speed
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
@@ -444,7 +455,12 @@ def showScreen():
     # draw_circle(width // 2, height // 2, 20)
     draw_catcher(catcher_x, catcher_y)
     # draw_enemy(enemy_x, enemy_y)
-    draw_shooter(shooter_x, shooter_y)
+    # draw_shooter(shooter_x, shooter_y)
+    for shooter in shooters:
+        shooter_x = shooter[0]
+        shooter_y = shooter[1]
+        draw_shooter(shooter_x, shooter_y)
+
     for i in range(len(enemy_position)):
         enemy_x, enemy_y = enemy_position[i]
         glColor3f(*enemy_color[i])
@@ -468,6 +484,7 @@ glutIdleFunc(showScreen)
 glutMouseFunc(mouseListener)
 glutSpecialFunc(specialKeyListener)
 glutKeyboardFunc(keyboardListener)
+glutKeyboardUpFunc(spaceReleasedListener)
 glEnable(GL_POINT_SMOOTH) #make the point rounded
 glEnable(GL_BLEND)
 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
