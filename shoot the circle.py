@@ -24,7 +24,7 @@ catcher_y = catcher_radius
 
 enemy_radius = 20
 enemy_position = []
-enemy_speed = []
+enemy_speed = 0.3
 enemy_color = []
 
 spawn_interval = 0
@@ -182,8 +182,6 @@ def draw_enemy(x, y):
     global game_over
     if(game_over):
         glColor3f(0, 0, 0)
-    # else:
-    #     glColor3f(*enemy_color)
 
     draw_circle(x, y, enemy_radius)
 
@@ -286,7 +284,6 @@ def update_ground():
         current_time = glutGet(GLUT_ELAPSED_TIME)
         if(current_time - last_spawn_time > spawn_interval):
             enemy_position.append(set_enemy_pos())
-            enemy_speed.append(0.3)
             enemy_color.append(set_enemy_color())
             last_spawn_time = current_time
 
@@ -296,10 +293,15 @@ def update_ground():
             shooters[i] = (shooter_x, shooter_y)  
             if(shooter_y > height - button_section_height):
                 shooters.remove(shooters[i])
+                life -= 1
+                if(life <= 0):
+                    game_over = True
+                    # print(f'Game Over! Score: {score}')
+                    reset()
 
         for i in range(len(enemy_position) - 1, -1, -1):
             enemy_x, enemy_y = enemy_position[i]
-            enemy_y -= enemy_speed[i]
+            enemy_y -= enemy_speed
             enemy_position[i] = (enemy_x, enemy_y)
 
             for j in range(len(shooters) - 1, -1, -1):
@@ -308,27 +310,19 @@ def update_ground():
                 if(distance <= shooter_radius + enemy_radius):
                     score += 1
 
-                    # if(enemy_speed[i] >= 1.0):
-                    #     enemy_speed[i] = 1.0
-                    # else:
-                    #     enemy_speed[i] += 0.1
+                    if(enemy_speed >= 0.8):
+                        enemy_speed = 0.8
+                    else:
+                        enemy_speed += 0.01
                     shooters.remove(shooters[j])
                     enemy_position.remove(enemy_position[i])
-                    enemy_speed.remove(enemy_speed[i])
                     enemy_color.remove(enemy_color[i])
-
-
-                    # shooter_active = False
-                    # enemy_x, enemy_y = set_enemy_pos()
-                    # enemy_color = set_enemy_color()
-                    # continue
                     break
 
             distance = calc_distance(catcher_x, catcher_y, enemy_x, enemy_y)
             if(distance <= catcher_radius + enemy_radius):
                 game_over = True
                 life = 0
-                # enemy_x, enemy_y = set_enemy_pos()
                 # print(f'Game Over! Score: {score}')
                 reset()
                 
@@ -336,20 +330,16 @@ def update_ground():
                 life -= 1
                 if(life <= 0):
                     game_over = True
-                    # enemy_x, enemy_y = set_enemy_pos()
                     # print(f'Game Over! Score: {score}')
                     reset()
-
                 else:
                     enemy_position.remove(enemy_position[i])
-                    enemy_speed.remove(enemy_speed[i])
                     enemy_color.remove(enemy_color[i])
             
 def reset(): #when game over just reset the value
     global enemy_position, enemy_color, enemy_speed, shooters
-
     enemy_position = []
-    enemy_speed = []
+    enemy_speed = 0.3
     enemy_color = []
     shooters = []
 
@@ -372,7 +362,6 @@ def restart(): #when click the restart button then everything back to initial st
 
 
 def mouseListener(button, state, x, y):
-    # global catcher_x, catcher_y, enemy_x, enemy_y, enemy_color, enemy_speed
     global score, game_over, pause, life
 
     if(button == GLUT_LEFT_BUTTON and state == GLUT_DOWN):
@@ -426,9 +415,9 @@ def keyboardListener(key, x, y):
             shooters.append((shooter_x, shooter_y))
             space_pressed = True
 
+
 def spaceReleasedListener(key, x, y):
     global space_pressed
-
     if(key == b" "):
         space_pressed = False
 
@@ -452,10 +441,8 @@ def showScreen():
     draw_button()
     draw_score()
     draw_life()
-    # draw_circle(width // 2, height // 2, 20)
     draw_catcher(catcher_x, catcher_y)
-    # draw_enemy(enemy_x, enemy_y)
-    # draw_shooter(shooter_x, shooter_y)
+
     for shooter in shooters:
         shooter_x = shooter[0]
         shooter_y = shooter[1]
