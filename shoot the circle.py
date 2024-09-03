@@ -8,9 +8,21 @@ def set_enemy_color():
     return (random.uniform(0.6, 0.9), random.uniform(0.6, 0.9), random.uniform(0.6, 0.9))
 
 def set_enemy_pos():
-    enemy_x = random.randint(enemy_radius, width - enemy_radius)
-    enemy_y = height - (button_section_height + enemy_radius)
-    return enemy_x, enemy_y
+    global enemy_radius
+    while(True):
+        enemy_x = random.randint(enemy_radius, width - enemy_radius)
+        enemy_y = height - (button_section_height + enemy_radius)
+
+        overlap = False
+
+        for x,y in enemy_position:
+            distance = calc_distance(enemy_x, enemy_y, x, y)
+            if(distance < 2 * enemy_radius + 1): # +1 so that two falling object doesn't seem like attach with each other
+                overlap = True
+                break
+
+        if(overlap == False):
+            return enemy_x, enemy_y
 
 
 GLUT_BITMAP_HELVETICA_18 = ctypes.c_void_p(int(5))
